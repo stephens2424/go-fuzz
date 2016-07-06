@@ -10,7 +10,7 @@
 package main
 
 import (
-	"github.com/elazarl/go-bindata-assetfs"
+	"github.com/stephens2424/go-bindata-assetfs"
 	"bytes"
 	"compress/gzip"
 	"fmt"

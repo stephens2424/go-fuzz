@@ -16,8 +16,11 @@ import (
 	"time"
 )
 
-//go:generate go get github.com/elazarl/go-bindata-assetfs/...
-//go:generate go-bindata-assetfs assets/...
+//go:generate go build github.com/dvyukov/go-fuzz/go-fuzz/vendor/github.com/jteeuwen/go-bindata/go-bindata
+//go:generate go build github.com/dvyukov/go-fuzz/go-fuzz/vendor/github.com/stephens2424/go-bindata-assetfs/go-bindata-assetfs
+//go:generate ./go-bindata-assetfs -go-bindata ./go-bindata assets/...
+//go:generate rm go-bindata
+//go:generate rm go-bindata-assetfs
 
 var (
 	flagWorkdir       = flag.String("workdir", "", "dir with persistent work data")

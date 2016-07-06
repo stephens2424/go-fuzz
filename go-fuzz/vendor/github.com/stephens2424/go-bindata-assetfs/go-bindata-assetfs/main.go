@@ -5,36 +5,39 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
-	"strings"
 )
 
 const bindatafile = "bindata.go"
 
-func isDebug(args []string) bool {
-	flagset := flag.NewFlagSet("", flag.ContinueOnError)
-	debug := flagset.Bool("debug", false, "")
-	debugArgs := make([]string, 0)
-	for _, arg := range args {
-		if strings.HasPrefix(arg, "-debug") {
-			debugArgs = append(debugArgs, arg)
-		}
-	}
-	flagset.Parse(debugArgs)
-	if debug == nil {
-		return false
-	}
-	return *debug
-}
+var (
+	debug      bool
+	bindataCmd string
+)
 
 func main() {
-	if _, err := exec.LookPath("go-bindata"); err != nil {
-		fmt.Println("Cannot find go-bindata executable in path")
-		fmt.Println("Maybe you need: go get github.com/elazarl/go-bindata-assetfs/...")
+	flag.BoolVar(&debug, "debug", false, "")
+	flag.StringVar(&bindataCmd, "go-bindata", "go-bindata", "command name or absolute path to the go-bindata binary")
+	flag.Parse()
+
+	log.SetFlags(0)
+
+	if _, err := exec.LookPath(bindataCmd); err != nil {
+		log.Println("Cannot find go-bindata executable in path")
+		log.Println("Maybe you need: go get github.com/stephens2424/go-bindata-assetfs/...")
 		os.Exit(1)
 	}
-	cmd := exec.Command("go-bindata", os.Args[1:]...)
+
+	var args []string
+	if debug {
+		args = append(args, "debug")
+	}
+
+	args = append(args, flag.Args()...)
+
+	cmd := exec.Command(bindataCmd, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -43,15 +46,14 @@ func main() {
 	}
 	in, err := os.Open(bindatafile)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Cannot read", bindatafile, err)
+		log.Println("Cannot read", bindatafile, err)
 		return
 	}
 	out, err := os.Create("bindata_assetfs.go")
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Cannot write 'bindata_assetfs.go'", err)
+		log.Println("Cannot write 'bindata_assetfs.go'", err)
 		return
 	}
-	debug := isDebug(os.Args[1:])
 	r := bufio.NewReader(in)
 	done := false
 	for line, isPrefix, err := r.ReadLine(); err == nil; line, isPrefix, err = r.ReadLine() {
@@ -59,14 +61,14 @@ func main() {
 			line = append(line, '\n')
 		}
 		if _, err := out.Write(line); err != nil {
-			fmt.Fprintln(os.Stderr, "Cannot write to 'bindata_assetfs.go'", err)
+			log.Println("Cannot write to 'bindata_assetfs.go'", err)
 			return
 		}
 		if !done && !isPrefix && bytes.HasPrefix(line, []byte("import (")) {
 			if debug {
 				fmt.Fprintln(out, "\t\"net/http\"")
 			} else {
-				fmt.Fprintln(out, "\t\"github.com/elazarl/go-bindata-assetfs\"")
+				fmt.Fprintln(out, "\t\"github.com/stephens2424/go-bindata-assetfs\"")
 			}
 			done = true
 		}
