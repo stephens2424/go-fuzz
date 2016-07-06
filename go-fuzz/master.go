@@ -37,7 +37,8 @@ type Master struct {
 	statRestarts  uint64
 	coverFullness int
 
-	statsWriters *writerset.WriterSet
+	statsWriters    *writerset.WriterSet
+	latestStatsJSON []byte
 }
 
 // MasterSlave represents master's view of a slave.
@@ -74,6 +75,7 @@ func masterMain(ln net.Listener) {
 func masterListen(m *Master) {
 	if *flagHTTP != "" {
 		http.HandleFunc("/eventsource", m.eventSource)
+		http.HandleFunc("/latest", m.latestEvent)
 		http.HandleFunc("/", m.index)
 
 		go func() {
@@ -117,6 +119,7 @@ func (m *Master) broadcastStats() {
 		panic(err)
 	}
 
+	m.latestStatsJSON = b
 	fmt.Fprintf(m.statsWriters, "event: ping\ndata: %s\n\n", string(b))
 	m.statsWriters.Flush()
 }
@@ -125,6 +128,11 @@ func (m *Master) eventSource(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.WriteHeader(http.StatusOK)
 	<-m.statsWriters.Add(w)
+}
+
+func (m *Master) latestEvent(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(m.latestStatsJSON)
 }
 
 func (m *Master) index(w http.ResponseWriter, r *http.Request) {
